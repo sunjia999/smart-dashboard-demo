@@ -1,14 +1,31 @@
 {
   "name": "smart-dashboard",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
+  "description": "Vue3+Vite+Pinia+Jsencrypt+ElementPlus+Three低代码智能监控平台演示demo",
+  "homepage": "https://github.com/sunjia999/smart-dashboard-demo#readme",
+  "bugs": {
+    "url": "https://github.com/sunjia999/smart-dashboard-demo/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sunjia999/smart-dashboard-demo.git"
+  },
+  "license": "ISC",
+  "author": "",
   "type": "module",
+  "main": "vite.config.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "element-plus": "^2.13.2",
+    "jsencrypt": "^3.5.4",
+    "pinia": "^3.0.4",
+    "socket.io-client": "^4.8.3",
+    "three": "^0.182.0",
     "vue": "^3.5.25"
   },
   "devDependencies": {
