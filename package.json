@@ -21,6 +21,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "crypto-js": "^4.2.0",
     "element-plus": "^2.13.2",
     "jsencrypt": "^3.5.4",
     "pinia": "^3.0.4",
