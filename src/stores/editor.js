@@ -20,6 +20,10 @@ export const useEditorStore = defineStore("editor", () => {
         color: "#333",
         align: "left",
       },
+      defaultSize: {
+        width: 200,
+        height: 50,
+      },
     },
     {
       type: "chart",
@@ -31,6 +35,10 @@ export const useEditorStore = defineStore("editor", () => {
         width: "100%",
         height: 300,
       },
+      defaultSize: {
+        width: 200,
+        height: 50,
+      },
     },
     {
       type: "table",
@@ -40,6 +48,10 @@ export const useEditorStore = defineStore("editor", () => {
         columns: [],
         data: [],
         pagination: true,
+      },
+      defaultSize: {
+        width: 200,
+        height: 50,
       },
     },
     {
@@ -51,6 +63,10 @@ export const useEditorStore = defineStore("editor", () => {
         showGrid: true,
         animation: true,
       },
+      defaultSize: {
+        width: 200,
+        height: 50,
+      },
     },
     {
       type: "realtime",
@@ -59,6 +75,10 @@ export const useEditorStore = defineStore("editor", () => {
       defaultProps: {
         endpoint: "",
         updateInterval: 1000,
+      },
+      defaultSize: {
+        width: 200,
+        height: 50,
       },
     },
   ]);
@@ -73,7 +93,10 @@ export const useEditorStore = defineStore("editor", () => {
       type,
       props: JSON.parse(JSON.stringify(componentType.defaultProps)),
       position: { x: 100, y: components.value.length * 100 },
-      size: { width: 300, height: 200 },
+      size: {
+        width: componentType.defaultSize.width || 300,
+        height: componentType.defaultSize.height || 200,
+      },
     };
 
     components.value.push(newComponent);
@@ -84,9 +107,12 @@ export const useEditorStore = defineStore("editor", () => {
 
   // 更新组件属性
   const updateComponentProps = (componentId, props) => {
+    console.log(props,'p');
     const component = components.value.find((c) => c.id === componentId);
     if (component) {
-      Object.assign(component.props, props);
+      Object.assign(component, props);
+      console.log('更新组件成功',component);
+      console.log(components.value);
     }
   };
 
@@ -126,6 +152,12 @@ export const useEditorStore = defineStore("editor", () => {
     }
   };
 
+  // 清空画布
+  const clearCanvas = () => {
+    components.value = [];
+    selectedComponent.value = null;
+  };
+
   return {
     components,
     selectedComponent,
@@ -135,5 +167,6 @@ export const useEditorStore = defineStore("editor", () => {
     removeComponent,
     exportConfig,
     importConfig,
+    clearCanvas
   };
 });

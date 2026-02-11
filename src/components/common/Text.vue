@@ -30,21 +30,15 @@ const props = defineProps({
         default: 'left'
     }
 });
-console.log(props,'props');
 
 defineEmits(['select']);
 </script>
 
 <style scoped>
-.text-component {
-    border: 1px dashed transparent;
-    transition: border-color 0.3s;
+.text-component{
+    width: 100%;
+    height: 100%;
 }
-
-.text-component:hover {
-    border-color: #409eff;
-}
-
 .text-component.selected {
     border-color: #409eff;
     background-color: rgba(64, 158, 255, 0.1);
