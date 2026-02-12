@@ -12,7 +12,8 @@
                 </el-button>
                 <el-dropdown @command="handleAlignCommand">
                     <el-button size="small">
-                        自动对齐<el-icon class="el-icon--right">
+                        自动对齐
+                        <el-icon class="el-icon--right">
                             <ArrowDown />
                         </el-icon>
                     </el-button>
@@ -54,17 +55,12 @@
                     top: component.position.y + 'px',
                     width: component.size.width + 'px',
                     height: component.size.height + 'px'
-                }" @click="selectComponent(component.id)">
+                }" @mousedown="startDrag($event, component)" @click="selectComponent(component.id)">
                 <component :is="getComponentByName(component.type)" v-bind="component.props" :id="component.id"
                     @select="selectComponent(component.id)" />
                 <!-- 选中时的边框和操作点 -->
-                <div class="selection-border" v-if="selectedComponentId === component.id"></div>
+                <div class="selection-border" v-if="selectedComponentId && selectedComponentId === component.id"></div>
                 <div class="resize-handle" @mousedown.stop="startResize(component.id, $event)"></div>
-            </div>
-            <!-- 拖拽引导线 -->
-            <div class="drag-guides" v-if="showDragGuides">
-                <div class="guide-line horizontal" :style="{ top: dragY + 'px' }"></div>
-                <div class="guide-line vertical" :style="{ left: dragX + 'px' }"></div>
             </div>
             <!-- 拖拽预览组件 -->
             <div class="component-item drag-preview" v-if="props.dragPreview.show" :style="{
@@ -87,8 +83,8 @@
 <script setup>
 import { ref, computed, defineProps, defineEmits } from 'vue';
 import { useEditorStore } from '@/stores/editor';
-import { findNonOverlapPosition } from '@/utils/collision';
-import { Upload } from '@element-plus/icons-vue';
+import { checkCollision, hasCollision, findNonOverlapPosition } from '@/utils/collision';
+import { Upload, ArrowDown } from '@element-plus/icons-vue';
 import TextComponent from '@/components/common/Text.vue';
 const props = defineProps({
     dragPreview: {
@@ -100,12 +96,15 @@ const emits = defineEmits(['updateDragPreview']);
 const editorStore = useEditorStore();
 const canvasRef = ref(null);
 const snapToGrid = ref(true);
-const showDragGuides = ref(false);
 const isDragOver = ref(false);
 const dragX = ref(0);
 const dragY = ref(0);
+// 画布内拖拽状态
+const isDragging = ref(false);
+const dragId = ref(null);
+const dragOffset = ref({ x: 0, y: 0 });
 const components = computed(() => editorStore.components);
-//当前选中组件
+// 当前选中组件
 const selectedComponentId = computed(() => editorStore.selectedComponent);
 // 组件映射
 const componentMap = {
@@ -145,10 +144,65 @@ const updateDragPreview = (event, component) => {
     };
     emits('updateDragPreview', newPreview);
 };
-// 画布组件拖拽
+
+// 画布内拖拽
+const startDrag = (e, component) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.button !== 0) return;
+    isDragging.value = true;
+    dragId.value = component.id;
+    editorStore.selectedComponent = component.id;
+    const rect = e.currentTarget.getBoundingClientRect();
+    dragOffset.value = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+    };
+    // 添加全局监听
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
+};
+
+// 拖拽移动
+const onDragMove = (e) => {
+    if (!isDragging.value) return;
+    const component = editorStore.components.find(c => c.id === dragId.value);
+    if (!component) return;
+    const canvasRect = canvasRef.value.getBoundingClientRect();
+    let newX = e.clientX - dragOffset.value.x - canvasRect.left;
+    let newY = e.clientY - dragOffset.value.y - canvasRect.top;
+
+    // 边界限制
+    newX = Math.max(0, Math.min(newX, canvasRect.width - component.size.width));
+    newY = Math.max(0, Math.min(newY, canvasRect.height - component.size.height));
+    newX = Math.round(newX / 10) * 10;
+    newY = Math.round(newY / 10) * 10;
+    const hasCollisionWithOthers = hasCollision(
+        editorStore.components,
+        newX,
+        newY,
+        component.size.width,
+        component.size.height,
+        dragId.value
+    );
+    if (!hasCollisionWithOthers) {
+        editorStore.updateComponentProps(dragId.value, {
+            position: { x: newX, y: newY }
+        });
+    }
+};
+
+// 拖拽结束
+const onDragEnd = () => {
+    isDragging.value = false;
+    dragId.value = null;
+    document.removeEventListener('mousemove', onDragMove);
+    document.removeEventListener('mouseup', onDragEnd);
+};
+
+// 从画布外拖拽
 const canvasDragOver = (event) => {
     isDragOver.value = true;
-
     // 计算网格对齐位置
     const rect = canvasRef.value.getBoundingClientRect();
     const offsetX = event.clientX - rect.left;
@@ -162,7 +216,6 @@ const canvasDragOver = (event) => {
         dragX.value = offsetX;
         dragY.value = offsetY;
     }
-    showDragGuides.value = true;
 
     if (!editorStore.draggingComponent) return;
     const component = editorStore.componentTypes.find(c => c.type === editorStore.draggingComponent.type);
@@ -174,12 +227,10 @@ const canvasDragOver = (event) => {
 
 const canvasDragLeave = () => {
     isDragOver.value = false;
-    showDragGuides.value = false;
 };
 
 const canvasDrop = (event) => {
     isDragOver.value = false;
-    showDragGuides.value = false;
     // 获取拖拽数据
     const componentType = event.dataTransfer.getData('componentType');
     const defaultWidth = parseInt(event.dataTransfer.getData('defaultWidth')) || 200;
@@ -332,7 +383,8 @@ const handleAlignCommand = (command) => {
 
 .canvas-component {
     border: 1px dashed transparent;
-    transition: border-color 0.3s;
+    transition: none;
+    user-select: none;
 }
 
 .canvas-component:hover {

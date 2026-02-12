@@ -7,6 +7,19 @@ export const checkCollision = (rect1, rect2) => {
     rect1.y + rect1.height > rect2.y
   );
 };
+export const hasCollision = (components, x, y, width, height, excludeId) => {
+  const rect = { x, y, width, height };
+  return components.some((comp) => {
+    if (comp.id === excludeId) return false;
+    const compRect = {
+      x: comp.position.x,
+      y: comp.position.y,
+      width: comp.size.width,
+      height: comp.size.height,
+    };
+    return checkCollision(rect, compRect);
+  });
+};
 
 // 查找非重叠
 export const findNonOverlapPosition = (
