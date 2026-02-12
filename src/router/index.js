@@ -1,11 +1,11 @@
 import { createRouter, createWebHistory } from "vue-router";
-import EditorLayout from "@/components/layout/EditorLayout.vue";
+import LowCode from "@/views/LowCode.vue";
 
 const routes = [
   {
     path: "/",
-    name: "editor",
-    component: EditorLayout,
+    name: "lowcode",
+    component: LowCode,
   },
   //   {
   //     path: "/preview",

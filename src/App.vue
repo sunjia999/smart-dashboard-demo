@@ -1,9 +1,9 @@
 <script setup>
-import EditorLayout from './components/layout/EditorLayout.vue';
+import LowCode from './views/LowCode.vue';
 </script>
 
 <template>
-  <EditorLayout />
+  <LowCode />
 </template>
 
 <style scoped>
