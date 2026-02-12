@@ -82,6 +82,16 @@ export const useEditorStore = defineStore("editor", () => {
       },
     },
   ]);
+  // 拖拽中的组件
+  const draggingComponent = ref(null);
+
+  const setDraggingComponent = (component) => {
+    draggingComponent.value = component;
+  };
+
+  const clearDraggingComponent = () => {
+    draggingComponent.value = null;
+  };
 
   // 添加组件
   const addComponent = (type) => {
@@ -107,12 +117,9 @@ export const useEditorStore = defineStore("editor", () => {
 
   // 更新组件属性
   const updateComponentProps = (componentId, props) => {
-    console.log(props,'p');
     const component = components.value.find((c) => c.id === componentId);
     if (component) {
       Object.assign(component, props);
-      console.log('更新组件成功',component);
-      console.log(components.value);
     }
   };
 
@@ -156,17 +163,21 @@ export const useEditorStore = defineStore("editor", () => {
   const clearCanvas = () => {
     components.value = [];
     selectedComponent.value = null;
+    clearDraggingComponent();
   };
 
   return {
     components,
     selectedComponent,
+    draggingComponent,
     componentTypes,
+    setDraggingComponent,
+    clearDraggingComponent,
     addComponent,
     updateComponentProps,
     removeComponent,
     exportConfig,
     importConfig,
-    clearCanvas
+    clearCanvas,
   };
 });

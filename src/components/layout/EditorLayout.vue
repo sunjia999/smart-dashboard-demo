@@ -40,6 +40,28 @@
                         <el-button size="small" @click="snapToGrid = !snapToGrid">
                             {{ snapToGrid ? '关闭网格' : '开启网格' }}
                         </el-button>
+                        <el-dropdown @command="handleAlignCommand">
+                            <el-button size="small">
+                                自动对齐<el-icon class="el-icon--right">
+                                    <ArrowDown />
+                                </el-icon>
+                            </el-button>
+                            <template #dropdown>
+                                <el-dropdown-menu>
+                                    <el-dropdown-item command="all">所有组件</el-dropdown-item>
+                                    <el-dropdown-item command="selected">仅选中组件</el-dropdown-item>
+                                    <el-dropdown-item divided command="grid">对齐网格</el-dropdown-item>
+                                    <el-dropdown-item command="left">左对齐</el-dropdown-item>
+                                    <el-dropdown-item command="right">右对齐</el-dropdown-item>
+                                    <el-dropdown-item command="top">顶部对齐</el-dropdown-item>
+                                    <el-dropdown-item command="bottom">底部对齐</el-dropdown-item>
+                                    <el-dropdown-item command="center-h">水平居中</el-dropdown-item>
+                                    <el-dropdown-item command="center-v">垂直居中</el-dropdown-item>
+                                    <el-dropdown-item command="distribute-h">水平均匀分布</el-dropdown-item>
+                                    <el-dropdown-item command="distribute-v">垂直均匀分布</el-dropdown-item>
+                                </el-dropdown-menu>
+                            </template>
+                        </el-dropdown>
                     </div>
                 </div>
                 <div class="canvas-wrapper" @dragover.prevent="canvasDragOver" @dragleave="canvasDragLeave"
@@ -74,8 +96,22 @@
                         <div class="guide-line horizontal" :style="{ top: dragY + 'px' }"></div>
                         <div class="guide-line vertical" :style="{ left: dragX + 'px' }"></div>
                     </div>
-
+                    <!-- 拖拽预览组件 -->
+                    <div class="component-item drag-preview" v-if="dragPreview.show" :style="{
+                        left: dragPreview.x + 'px',
+                        top: dragPreview.y + 'px',
+                        width: dragPreview.width + 'px',
+                        height: dragPreview.height + 'px'
+                    }">
+                        <div class="component-icon">
+                            <el-icon>
+                                <component :is="dragPreview.icon" />
+                            </el-icon>
+                        </div>
+                        <span class="component-name">{{ dragPreview.name }}</span>
+                    </div>
                 </div>
+
             </main>
             <!-- 属性面板 -->
             <aside class="properties-panel">
@@ -91,6 +127,7 @@
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue';
 import { useEditorStore } from '@/stores/editor';
+import { findNonOverlapPosition } from '@/utils/collision';
 import {
     Document,
     PieChart,
@@ -110,7 +147,16 @@ const showDragGuides = ref(false);
 const isDragOver = ref(false);
 const dragX = ref(0);
 const dragY = ref(0);
-
+const dragPreview = reactive({
+    show: false,
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+    type: '',
+    name: '',
+    icon: ''
+});
 const components = computed(() => editorStore.components);
 //当前选中组件
 const selectedComponentId = computed(() => editorStore.selectedComponent);
@@ -143,18 +189,25 @@ const handleDragStart = (event, component) => {
     event.dataTransfer.setData('componentType', component.type);
     event.dataTransfer.setData('defaultWidth', component.defaultSize.width);
     event.dataTransfer.setData('defaultHeight', component.defaultSize.height);
-
     // 设置拖拽效果
     event.dataTransfer.effectAllowed = 'copy';
     // 添加拖拽开始样式
     event.target.classList.add('dragging');
     editorStore.selectedComponent = null;
+    editorStore.setDraggingComponent({
+        type: component.type,
+        width: component.defaultSize.width,
+        height: component.defaultSize.height,
+        name: component.name
+    });
 };
 
 // 拖拽结束
 const handleDragEnd = (event, component) => {
     event.target.classList.remove('dragging');
     editorStore.selectedComponent = null;
+    editorStore.clearDraggingComponent();
+    dragPreview.show = false;
 };
 
 // 清空画布
@@ -162,8 +215,24 @@ const clearCanvas = () => {
     editorStore.clearCanvas();
 };
 
+// 拖拽预览
+const updateDragPreview = (event, component) => {
+    const rect = canvasRef.value.getBoundingClientRect();
+    const x = event.clientX - rect.left - component.defaultSize.width / 2;
+    const y = event.clientY - rect.top - component.defaultSize.height / 2;
+    const newPreview = {
+        show: true,
+        x: snapToGrid.value ? Math.round(x / 10) * 10 : x,
+        y: snapToGrid.value ? Math.round(y / 10) * 10 : y,
+        width: component.defaultSize.width,
+        height: component.defaultSize.height,
+        type: component.type,
+        name: component.name,
+        icon: component.icon
+    };
+    Object.assign(dragPreview, newPreview);
+};
 // 画布组件拖拽
-// 拖拽事件处理
 const canvasDragOver = (event) => {
     isDragOver.value = true;
 
@@ -180,8 +249,14 @@ const canvasDragOver = (event) => {
         dragX.value = offsetX;
         dragY.value = offsetY;
     }
-
     showDragGuides.value = true;
+
+    if (!editorStore.draggingComponent) return;
+    const component = editorStore.componentTypes.find(c => c.type === editorStore.draggingComponent.type);
+    if (component) {
+        updateDragPreview(event, component);
+    }
+
 };
 
 const canvasDragLeave = () => {
@@ -192,10 +267,8 @@ const canvasDragLeave = () => {
 const canvasDrop = (event) => {
     isDragOver.value = false;
     showDragGuides.value = false;
-    console.log(1);
     // 获取拖拽数据
     const componentType = event.dataTransfer.getData('componentType');
-    console.log(componentType, 'componentType');
     const defaultWidth = parseInt(event.dataTransfer.getData('defaultWidth')) || 200;
     const defaultHeight = parseInt(event.dataTransfer.getData('defaultHeight')) || 150;
 
@@ -205,7 +278,6 @@ const canvasDrop = (event) => {
     const rect = canvasRef.value.getBoundingClientRect();
     let x = event.clientX - rect.left - defaultWidth / 2;
     let y = event.clientY - rect.top - defaultHeight / 2;
-    console.log(x, y);
 
     // 边界检查
     x = Math.max(0, Math.min(x, rect.width - defaultWidth));
@@ -216,17 +288,75 @@ const canvasDrop = (event) => {
         x = Math.round(x / 10) * 10;
         y = Math.round(y / 10) * 10;
     }
+    // 查找不重叠的位置
+    const nonOverlapPosition = findNonOverlapPosition(
+        components.value,
+        { x, y, width: defaultWidth, height: defaultHeight },
+        rect.width,
+        rect.height
+    );
 
     // 添加新组件
     const newComponent = editorStore.addComponent(componentType);
     editorStore.updateComponentProps(newComponent.id, {
-        position: { x, y },
+        position: nonOverlapPosition,
         size: { width: defaultWidth, height: defaultHeight }
     });
 
     // 选中新添加的组件
     editorStore.selectedComponent = newComponent.id;
-}
+};
+
+// 调整大小
+const isResizing = ref(false);
+const startResize = (componentId, event) => {
+    isResizing.value = true;
+
+    const component = components.value.find(c => c.id === componentId);
+    if (!component) return;
+
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const startWidth = component.size.width;
+    const startHeight = component.size.height;
+
+    const onMouseMove = (e) => {
+        if (!isResizing.value) return;
+
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
+
+        const newWidth = Math.max(50, startWidth + deltaX);
+        const newHeight = Math.max(50, startHeight + deltaY);
+
+        // 网格对齐
+        let finalWidth = newWidth;
+        let finalHeight = newHeight;
+
+        if (snapToGrid.value) {
+            finalWidth = Math.round(newWidth / 10) * 10;
+            finalHeight = Math.round(newHeight / 10) * 10;
+        }
+
+        editorStore.updateComponentProps(componentId, {
+            size: { width: finalWidth, height: finalHeight }
+        });
+    };
+
+    const onMouseUp = () => {
+        isResizing.value = false;
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+};
+
+//对齐
+const handleAlignCommand = (command) => {
+    console.log('对齐命令:', command);
+};
 
 </script>
 <style scoped>
@@ -443,5 +573,22 @@ const canvasDrop = (event) => {
     width: 1px;
     top: 0;
     bottom: 0;
+}
+
+.drag-preview {
+    position: absolute;
+    border: 2px dashed #409eff;
+    background: rgba(64, 158, 255, 0.1);
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 1000;
+    will-change: transform;
+}
+
+.preview-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #409eff;
 }
 </style>
