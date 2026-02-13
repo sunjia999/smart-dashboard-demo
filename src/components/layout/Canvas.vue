@@ -85,7 +85,8 @@ import { ref, computed, defineProps, defineEmits } from 'vue';
 import { useEditorStore } from '@/stores/editor';
 import { checkCollision, hasCollision, findNonOverlapPosition } from '@/utils/collision';
 import { Upload, ArrowDown } from '@element-plus/icons-vue';
-import TextComponent from '@/components/common/Text.vue';
+import Text from '@/components/common/Text.vue';
+import ThreeScene from '@/components/common/ThreeScene.vue';
 const props = defineProps({
     dragPreview: {
         type: Object,
@@ -108,14 +109,14 @@ const components = computed(() => editorStore.components);
 const selectedComponentId = computed(() => editorStore.selectedComponent);
 // 组件映射
 const componentMap = {
-    text: TextComponent,
+    text: Text,
     // chart: ChartComponent,
     // table: TableComponent,
-    // three: ThreeScene,
+    three: ThreeScene,
     // realtime: RealtimeData
 };
 const getComponentByName = (type) => {
-    return componentMap[type] || TextComponent;
+    return componentMap[type] || Text;
 };
 
 const selectComponent = (id) => {

@@ -82,7 +82,7 @@ watch(selectedComponent, (newVal) => {
             props: JSON.parse(JSON.stringify(newVal.props))
         };
     }
-}, { immediate: true,deep: true });
+}, { immediate: true, deep: true });
 
 // 更新组件
 const updateComponent = () => {
@@ -105,13 +105,9 @@ const formatLabel = (key) => {
         data: '数据',
         width: '宽度',
         height: '高度',
-        columns: '列',
-        pagination: '分页',
         backgroundColor: '背景',
-        showGrid: '网格',
-        animation: '动画',
-        endpoint: '端点',
-        updateInterval: '更新间隔'
+        rotationSpeed: '转速',
+        modelColor: '模型颜色' 
     };
     return labels[key] || key;
 };
@@ -151,7 +147,11 @@ const formatLabel = (key) => {
     background-color: #fafafa !important;
 }
 
-:deep(.el-input-number, .el-color-picker) {
+:deep(.el-input-number) {
+    width: 100% !important;
+}
+
+:deep(.el-color-picker) {
     width: 100% !important;
 }
 

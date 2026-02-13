@@ -42,7 +42,7 @@ const updateDragPreview = (data) => {
 </script>
 <style scoped>
 .editor-container {
-    height: 100vh;
+    height: 100%;
     display: flex;
     flex-direction: column;
 }

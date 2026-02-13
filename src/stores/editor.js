@@ -59,13 +59,13 @@ export const useEditorStore = defineStore("editor", () => {
       name: "3D场景",
       icon: "Box",
       defaultProps: {
-        backgroundColor: "#ffffff",
-        showGrid: true,
-        animation: true,
+        backgroundColor: "#f0f2f5",
+        rotationSpeed: 0.01,
+        modelColor: '#409eff',
       },
       defaultSize: {
-        width: 200,
-        height: 50,
+        width: 400,
+        height: 300,
       },
     },
     {
